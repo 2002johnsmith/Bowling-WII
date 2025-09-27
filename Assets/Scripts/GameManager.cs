@@ -15,7 +15,16 @@ public class GameManager : MonoBehaviour
     [Header("Referencias")]
     [SerializeField] private BallControler ball;
     [SerializeField] private List<Pin> pins = new List<Pin>(); 
-    private Vector3[] pinPositions; 
+    private Vector3[] pinPositions;
+
+    [Header("Configuración de Partida")]
+    [SerializeField] private int totalRondas; 
+    [SerializeField] private GameObject panelGanador;
+    [SerializeField] private TextMeshProUGUI textoGanador;
+
+    private int rondaActual = 1;
+    private int tirosRestantes = 2;
+
 
     void Start()
     {
@@ -36,24 +45,49 @@ public class GameManager : MonoBehaviour
 
         ActualizarUI();
     }
-
     public void RevisarTiro()
     {
-        int knocked = 0;
+        int knockedThisThrow = 0;
         for (int i = 0; i < pins.Count; i++)
         {
-            if (pins[i].Cayo()) knocked++;
+            if (pins[i].Cayo() && pins[i].gameObject.activeSelf)
+            {
+                knockedThisThrow++;
+            }
         }
 
-        playerScores[currentPlayer] += knocked;
+        playerScores[currentPlayer] += knockedThisThrow;
+        tirosRestantes--;
 
-        ResetearPinos();
+        if (knockedThisThrow == pins.Count && tirosRestantes == 1)
+        {
+            tirosRestantes = 0;
+        }
 
-        SiguienteJugador();
+        if (tirosRestantes > 0)
+        {
+            ResetearSoloCaidos();
+        }
+        else
+        {
+            tirosRestantes = 2;
+            ResetearPinos();
+            SiguienteJugador();
+
+            if (currentPlayer == 0)
+            {
+                rondaActual++;
+                if (rondaActual > totalRondas)
+                {
+                    TerminarPartida();
+                    return;
+                }
+            }
+        }
+
         ball.ResetMovimiento();
         ActualizarUI();
     }
-
 
     void SiguienteJugador()
     {
@@ -63,22 +97,55 @@ public class GameManager : MonoBehaviour
             currentPlayer = 0;
         }
     }
-
     void ActualizarUI()
     {
-        turnText.text = "Turno: " + playerNames[currentPlayer];
+        turnText.text = "Ronda " + rondaActual + "/" + totalRondas +
+                        " - Turno: " + playerNames[currentPlayer] +
+                        " (Tiros restantes: " + tirosRestantes + ")";
+
         scoreText.text = "Puntajes:\n";
         for (int i = 0; i < playerNames.Count; i++)
         {
             scoreText.text += playerNames[i] + ": " + playerScores[i] + "\n";
         }
     }
-
     void ResetearPinos()
     {
         for (int i = 0; i < pins.Count; i++)
         {
+            pins[i].gameObject.SetActive(true);
             pins[i].Resetear(pinPositions[i]);
         }
+    }
+    void ResetearSoloCaidos()
+    {
+        for (int i = 0; i < pins.Count; i++)
+        {
+            if (pins[i].Cayo())
+            {
+                pins[i].gameObject.SetActive(false);
+            }
+        }
+    }
+
+    void TerminarPartida()
+    {
+        turnText.gameObject.SetActive(false);
+        scoreText.gameObject.SetActive(false);
+        panelGanador.SetActive(true);
+
+        int maxScore = -1;
+        string ganador = "";
+
+        for (int i = 0; i < playerNames.Count; i++)
+        {
+            if (playerScores[i] > maxScore)
+            {
+                maxScore = playerScores[i];
+                ganador = playerNames[i];
+            }
+        }
+
+        textoGanador.text = "¡Ganador: " + ganador + " con " + maxScore + " puntos!";
     }
 }
