@@ -31,7 +31,6 @@ public class MenuController : MonoBehaviour
 
     public void Jugar()
     {
-        panelPrincipal.SetActive(false);
         panelJugadorCount.SetActive(true);
     }
 
